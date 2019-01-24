@@ -18,28 +18,25 @@ matrix:
     - target: aarch64-pc-windows-msvc
 
 install:
-  - ps: >-
-      if (ls -r . -fi "*.rs" | sls "`t") { throw "Found tab character" }
-      appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe;
-      .\rustup-init.exe -y --default-toolchain $env:channel --default-host $env:host;
-      $env:PATH = "$env:PATH;${env:USERPROFILE}\.cargo\bin";
+  - ps: if (ls -r . -fi "*.rs" | sls "`t") { throw "Found tab character" }
+  - appveyor DownloadFile https://win.rustup.rs/ -FileName rustup-init.exe
+  - rustup-init.exe -y --default-toolchain %channel% --default-host %host%
+  - ps: $env:PATH = "$env:PATH;${env:USERPROFILE}\.cargo\bin"
+  - ps: >
       if ($env:targets) { $env:targets -split " " | %{
-        rustup target add $_;
+        rustup target add $_ 2>&1|%{"$_"}
       }}
-      rustc -vV;
-      cargo -vV;
+  - rustc -vV
+  - cargo -vV
 
 build_script:
-  - ps: >-
-      cargo build;
-      cargo build --release;
-      cargo build --features "everything debug impl-default";
-      cargo test --features "everything debug impl-default";
+  - cargo build
+  - cargo build --features "everything impl-debug impl-default"
+  - cargo build --release --features "everything impl-debug impl-default"
+  - cargo test --features "everything impl-debug impl-default"
+  - ps: >
       if ($env:targets) { $env:targets -split " " | %{
-        cargo build --target=$_;
-        cargo build --target=$_ --release;
-        cargo build --target=$_ --features "everything debug impl-default";
-        cargo test --target=$_ --features "everything debug impl-default" --no-run;
+        cargo test --target=$_ --features "everything impl-debug impl-default" --no-run 2>&1|%{"$_"}
       }}
 
 notifications:
